@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050508">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ORIGEN 23">
+  <title>ORIGEN 23 — Life OS</title>
+  <link rel="stylesheet" href="src/styles/main.css">
+  <!-- Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase + Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Charts global reference -->
+  <script>const charts = {};</script>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     LOADING OVERLAY
+     ════════════════════════════════════════ -->
+<div id="loading-overlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Cargando ORIGEN 23…</div>
+</div>
+
+<!-- ════════════════════════════════════════
+     AUTH SCREEN
+     ════════════════════════════════════════ -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-text">ORIGEN 23</div>
+      <div class="auth-logo-sub">Your Life Operating System</div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Ingresar</button>
+      <button class="auth-tab" id="tab-signup" onclick="showAuthTab('signup')">Crear cuenta</button>
+    </div>
+
+    <!-- Login -->
+    <div id="auth-login">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button onclick="doLogin()" class="btn btn-green btn-full btn-lg" style="margin-top:8px">Ingresar</button>
+    </div>
+
+    <!-- Signup -->
+    <div id="auth-signup" style="display:none">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="signup-pass" placeholder="Mín. 8 caracteres" autocomplete="new-password">
+      </div>
+      <button onclick="doSignup()" class="btn btn-green btn-full btn-lg" style="margin-top:8px">Crear cuenta</button>
+      <p style="font-size:11px;color:var(--t3);text-align:center;margin-top:12px">
+        Recibirás un email de confirmación
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     APP SHELL
+     ════════════════════════════════════════ -->
+<div id="app-shell" style="display:none">
+
+  <!-- Network Banner -->
+  <div id="network-banner"></div>
+
+  <!-- ── Page Area ── -->
+  <div id="page-area">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page"></div>
+
+    <!-- HÁBITOS -->
+    <div id="page-habitos" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:20px;font-weight:800">🔥 Hábitos</h2>
+        <div style="display:flex;gap:8px">
+          <button onclick="toggleTheme()" id="theme-toggle" class="btn btn-ghost btn-sm">☀️</button>
+          <button onclick="openNewHabitModal()" class="btn btn-green btn-sm">+ Nuevo</button>
+        </div>
+      </div>
+      <div class="tab-switch">
+        <button class="tab-switch-btn active" onclick="switchHabTab('tracker')">Tracker</button>
+        <button class="tab-switch-btn" onclick="switchHabTab('estadisticas')">Estadísticas</button>
+        <button class="tab-switch-btn" onclick="switchHabTab('rachas')">Rachas</button>
+      </div>
+      <div id="hab-tracker"></div>
+      <div id="hab-estadisticas" style="display:none"></div>
+      <div id="hab-rachas" style="display:none"></div>
+    </div>
+
+    <!-- TRADING -->
+    <div id="page-trading" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:20px;font-weight:800">📈 Trading</h2>
+        <button onclick="openNewTradeModal()" class="btn btn-green btn-sm">+ Trade</button>
+      </div>
+      <div class="tab-switch">
+        <button class="tab-switch-btn active" onclick="switchTradeTab('overview')">Overview</button>
+        <button class="tab-switch-btn" onclick="switchTradeTab('journal')">Journal</button>
+        <button class="tab-switch-btn" onclick="switchTradeTab('fondeo')">Fondeo</button>
+        <button class="tab-switch-btn" onclick="switchTradeTab('checklist')">Checklist</button>
+        <button class="tab-switch-btn" onclick="switchTradeTab('calendario')">Calendario</button>
+        <button class="tab-switch-btn" onclick="switchTradeTab('errores')">Errores</button>
+      </div>
+      <div id="trade-overview"></div>
+      <div id="trade-journal"    style="display:none"></div>
+      <div id="trade-fondeo"     style="display:none"></div>
+      <div id="trade-checklist"  style="display:none"></div>
+      <div id="trade-calendario" style="display:none"></div>
+      <div id="trade-errores"    style="display:none"></div>
+    </div>
+
+    <!-- FINANZAS -->
+    <div id="page-finanzas" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="font-size:20px;font-weight:800">💰 Finanzas</h2>
+        <button onclick="openNewMovModal()" class="btn btn-green btn-sm">+ Movimiento</button>
+      </div>
+      <div class="tab-switch">
+        <button class="tab-switch-btn active" onclick="switchFinTab('resumen')">Resumen</button>
+        <button class="tab-switch-btn" onclick="switchFinTab('movimientos')">Movimientos</button>
+        <button class="tab-switch-btn" onclick="switchFinTab('presupuesto')">Presupuesto</button>
+        <button class="tab-switch-btn" onclick="switchFinTab('patrimonio')">Patrimonio</button>
+        <button class="tab-switch-btn" onclick="switchFinTab('proyeccion')">Proyección</button>
+        <button class="tab-switch-btn" onclick="switchFinTab('metas')">Metas</button>
+      </div>
+      <div id="fin-resumen"></div>
+      <div id="fin-movimientos" style="display:none"></div>
+      <div id="fin-presupuesto" style="display:none"></div>
+      <div id="fin-patrimonio"  style="display:none"></div>
+      <div id="fin-proyeccion"  style="display:none"></div>
+      <div id="fin-metas"       style="display:none"></div>
+    </div>
+
+    <!-- METAS / OBJETIVOS -->
+    <div id="page-metas" class="page"></div>
+
+    <!-- SEMANA -->
+    <div id="page-semana" class="page">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:14px">📅 Semana</h2>
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">Planificador semanal</div>
+        <div class="empty-subtitle">Próximamente disponible</div>
+      </div>
+    </div>
+
+    <!-- DIARIO -->
+    <div id="page-diario" class="page">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:14px">📓 Diario</h2>
+      <div class="empty-state">
+        <div class="empty-icon">📓</div>
+        <div class="empty-title">Diario personal</div>
+        <div class="empty-subtitle">Próximamente disponible</div>
+      </div>
+    </div>
+
+    <!-- MÉTRICAS -->
+    <div id="page-metricas" class="page">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:14px">📊 Métricas</h2>
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">Métricas personales</div>
+        <div class="empty-subtitle">Próximamente disponible</div>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div id="page-insights" class="page">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:14px">🔍 Insights</h2>
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Insights & correlaciones</div>
+        <div class="empty-subtitle">Próximamente disponible</div>
+      </div>
+    </div>
+
+    <!-- GAMIFICACIÓN -->
+    <div id="page-gamificacion" class="page">
+      <h2 style="font-size:20px;font-weight:800;margin-bottom:14px">🎮 Gamificación</h2>
+      <div class="empty-state">
+        <div class="empty-icon">🎮</div>
+        <div class="empty-title">Sistema de logros</div>
+        <div class="empty-subtitle">Próximamente disponible</div>
+      </div>
+    </div>
+
+    <!-- PERFIL -->
+    <div id="page-perfil" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <h2 style="font-size:20px;font-weight:800">👤 Perfil</h2>
+        <button onclick="toggleTheme()" id="theme-toggle-2" class="btn btn-ghost btn-sm">☀️</button>
+      </div>
+      <div class="card card-p" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div id="profile-avatar" style="width:56px;height:56px;border-radius:18px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#000">O</div>
+          <div>
+            <div id="profile-name" style="font-size:16px;font-weight:700;color:var(--off)">Usuario</div>
+            <div id="profile-email" style="font-size:12px;color:var(--t3);margin-top:2px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export section -->
+      <div class="card card-p" style="margin-bottom:12px">
+        <div class="label" style="margin-bottom:12px">Exportar datos</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="exportData('csv','trades')"    class="btn btn-ghost btn-sm">📊 Trades CSV</button>
+          <button onclick="exportData('csv','habits')"    class="btn btn-ghost btn-sm">🔥 Hábitos CSV</button>
+          <button onclick="exportData('csv','movimientos')" class="btn btn-ghost btn-sm">💰 Finanzas CSV</button>
+          <button onclick="exportData('json','all')"      class="btn btn-ghost btn-sm">📦 Todo JSON</button>
+        </div>
+      </div>
+
+      <!-- App info -->
+      <div class="card card-p" style="margin-bottom:12px">
+        <div class="label" style="margin-bottom:10px">Información</div>
+        <div style="font-size:12px;color:var(--t2);line-height:1.8">
+          <div>Versión: <span style="color:var(--off);font-weight:600">2.0.0</span></div>
+          <div>Arquitectura: <span style="color:var(--off);font-weight:600">Modular SaaS</span></div>
+          <div>Estado: <span style="color:var(--green);font-weight:600">●  Conectado</span></div>
+        </div>
+      </div>
+
+      <button onclick="doLogout()" class="btn btn-ghost btn-full" style="color:var(--red);margin-top:4px">
+        Cerrar sesión
+      </button>
+    </div>
+
+  </div><!-- /page-area -->
+
+  <!-- ── Bottom Navigation ── -->
+  <nav id="bottom-nav">
+    <button class="nav-tab active" data-page="dashboard" onclick="goTo('dashboard')">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Inicio</span>
+    </button>
+    <button class="nav-tab" data-page="habitos" onclick="goTo('habitos')">
+      <span class="nav-icon">🔥</span>
+      <span class="nav-label">Hábitos</span>
+    </button>
+    <button class="nav-tab" data-page="trading" onclick="goTo('trading')">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Trading</span>
+    </button>
+    <button class="nav-tab" data-page="finanzas" onclick="goTo('finanzas')">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Finanzas</span>
+    </button>
+    <button class="nav-tab" data-page="metas" onclick="goTo('metas')">
+      <span class="nav-icon">🏆</span>
+      <span class="nav-label">Metas</span>
+    </button>
+  </nav>
+
+</div><!-- /app-shell -->
+
+<!-- ════════════════════════════════════════
+     TOAST
+     ════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════
+     MODALS
+     ════════════════════════════════════════ -->
+
+<!-- Modal: Nuevo Trade -->
+<div class="modal-overlay" id="modal-new-trade">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">📈 Registrar operación</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-new-trade')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Resultado *</label>
+        <select id="nt-result">
+          <option value="">— Seleccioná —</option>
+          <option value="Win">✅ Win</option>
+          <option value="Loss">❌ Loss</option>
+          <option value="Break Even">➖ Break Even</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label>P&L ($) *</label>
+          <input type="number" id="nt-pnl" placeholder="0.00" step="0.01">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Fecha</label>
+          <input type="date" id="nt-date">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+        <div class="field" style="margin:0">
+          <label>Risk/Reward</label>
+          <input type="number" id="nt-rr" placeholder="1.5" step="0.1" min="0">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Riesgo %</label>
+          <input type="number" id="nt-riesgo" placeholder="1.0" step="0.1" min="0" max="10">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+        <div class="field" style="margin:0">
+          <label>Setup</label>
+          <input type="text" id="nt-setup" placeholder="ICT, BOS, FVG…">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Horario</label>
+          <select id="nt-hour">
+            <option value="">— Sesión —</option>
+            <option value="London Open">🇬🇧 London Open</option>
+            <option value="NY Open">🇺🇸 NY Open</option>
+            <option value="London Close">🌆 London Close</option>
+            <option value="NY Close">🌃 NY Close</option>
+            <option value="Asia">🌏 Asia</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>Notas</label>
+        <textarea id="nt-notes" placeholder="Qué pasó, contexto del mercado…" rows="2"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--t2)">
+          <input type="checkbox" id="nt-error-emocional" style="width:auto;accent-color:var(--amber)"> Error emocional
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--t2)">
+          <input type="checkbox" id="nt-error-tecnico" style="width:auto;accent-color:var(--red)"> Error técnico
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="field" style="margin:0">
+          <label>¿Cumpliste el plan?</label>
+          <select id="nt-cumplio-plan">
+            <option value="">— —</option>
+            <option value="si">✅ Sí</option>
+            <option value="no">❌ No</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Consecuencia</label>
+          <input type="text" id="nt-consecuencia" placeholder="Si perdí el plan…">
+        </div>
+      </div>
+      <button onclick="addTrade()" class="btn btn-green btn-full" style="margin-top:20px">
+        Guardar operación
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nuevo Hábito -->
+<div class="modal-overlay" id="modal-new-habit">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🔥 Nuevo hábito</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-new-habit')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Nombre *</label>
+        <input type="text" id="hab-name" placeholder="Ej: Meditación 10 min">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label>Ícono</label>
+          <input type="text" id="hab-icon" placeholder="🧘" maxlength="2">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Color</label>
+          <input type="color" id="hab-color" value="#00E87A" style="height:44px;padding:4px 8px;cursor:pointer">
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>Sección</label>
+        <select id="hab-section">
+          <option value="matutino">🌅 Matutino</option>
+          <option value="diario">☀️ Diario</option>
+          <option value="nocturno">🌙 Nocturno</option>
+        </select>
+      </div>
+      <button onclick="addHabit()" class="btn btn-green btn-full" style="margin-top:20px">Guardar hábito</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nuevo Movimiento -->
+<div class="modal-overlay" id="modal-new-mov">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">💰 Nuevo movimiento</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-new-mov')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Tipo *</label>
+        <select id="mov-tipo">
+          <option value="">— Seleccioná —</option>
+          <option value="gasto">💸 Gasto</option>
+          <option value="ingreso">💵 Ingreso</option>
+          <option value="inversion">📈 Inversión</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="mov-cat">
+          <option value="">— Sin categoría —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Descripción *</label>
+        <input type="text" id="mov-desc" placeholder="Ej: Supermercado">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label>Monto ($) *</label>
+          <input type="number" id="mov-monto" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Fecha</label>
+          <input type="date" id="mov-fecha">
+        </div>
+      </div>
+      <button onclick="addMovimiento()" class="btn btn-green btn-full" style="margin-top:20px">Guardar movimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nuevo Objetivo -->
+<div class="modal-overlay" id="modal-new-goal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🎯 Nuevo objetivo</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-new-goal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Tipo *</label>
+        <select id="goal-tipo">
+          <option value="personal">🎯 Personal</option>
+          <option value="financiero">💰 Financiero</option>
+          <option value="trading">📈 Trading</option>
+          <option value="habito">🔥 Hábito</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label>Ícono</label>
+          <input type="text" id="goal-icon" placeholder="🎯" maxlength="2" style="width:60px;text-align:center">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Nombre *</label>
+          <input type="text" id="goal-name" placeholder="Ej: Trader fondeado">
+        </div>
+      </div>
+      <div class="field">
+        <label>Descripción</label>
+        <input type="text" id="goal-desc" placeholder="Describí el objetivo (opcional)">
+      </div>
+      <div class="field">
+        <label>Métrica de éxito</label>
+        <input type="text" id="goal-meta" placeholder="Ej: Pasar FTMO $10k">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0">
+          <label>Monto objetivo ($)</label>
+          <input type="number" id="goal-meta-valor" placeholder="0" min="0">
+        </div>
+        <div class="field" style="margin:0">
+          <label>Fecha límite</label>
+          <input type="date" id="goal-fecha">
+        </div>
+      </div>
+      <div class="field">
+        <label>Cálculo automático</label>
+        <select id="goal-auto-calc">
+          <option value="">Manual (slider)</option>
+          <option value="habit_pct">% días de hábito</option>
+          <option value="habit_streak">Racha de hábito</option>
+          <option value="trade_wr">Win Rate trading</option>
+          <option value="trade_pf">Profit Factor</option>
+          <option value="trade_pnl">P&L acumulado</option>
+          <option value="fin_ahorro">Ahorro mensual</option>
+          <option value="fin_patrimonio">Patrimonio neto</option>
+        </select>
+      </div>
+      <div class="field" id="goal-auto-target-field">
+        <label>Valor objetivo (para auto-cálculo)</label>
+        <input type="number" id="goal-auto-target" placeholder="Ej: 30 (días), 0.6 (60% WR)…">
+      </div>
+      <button onclick="addGoal()" class="btn btn-green btn-full" style="margin-top:8px">Crear objetivo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ingreso mensual -->
+<div class="modal-overlay" id="modal-set-ingreso">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">💵 Ingreso mensual</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-set-ingreso')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Ingreso neto del mes ($)</label>
+        <input type="number" id="ingreso-amount" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <button onclick="saveIngreso()" class="btn btn-green btn-full">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar patrimonio -->
+<div class="modal-overlay" id="modal-edit-patrimonio">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🏦 Editar patrimonio</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-edit-patrimonio')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pat-tipo-hidden" value="activos">
+      <!-- Activos -->
+      <div id="pat-activos-fields">
+        <div class="field"><label>💵 Efectivo ($)</label><input type="number" id="pa-efectivo" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>🏦 Banco ($)</label><input type="number" id="pa-banco" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>📱 MercadoPago ($)</label><input type="number" id="pa-mp" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>📈 Inversiones ($)</label><input type="number" id="pa-inv" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>📦 Otros ($)</label><input type="number" id="pa-otros" min="0" step="0.01" placeholder="0"></div>
+      </div>
+      <!-- Pasivos -->
+      <div id="pat-pasivos-fields" style="display:none">
+        <div class="field"><label>💳 Tarjetas ($)</label><input type="number" id="pp-tarjetas" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>🏦 Préstamos ($)</label><input type="number" id="pp-prestamos" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>🤝 Deudas ($)</label><input type="number" id="pp-deudas" min="0" step="0.01" placeholder="0"></div>
+        <div class="field"><label>📦 Otros ($)</label><input type="number" id="pp-otros" min="0" step="0.01" placeholder="0"></div>
+      </div>
+      <button onclick="savePatrimonio(document.getElementById('pat-tipo-hidden').value)" class="btn btn-green btn-full">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Fondo emergencia -->
+<div class="modal-overlay" id="modal-edit-emergencia">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🛡️ Fondo de emergencia</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-edit-emergencia')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Gastos mensuales ($)</label><input type="number" id="em-gastos" min="0" placeholder="0"></div>
+      <div class="field"><label>Meses de cobertura</label><input type="number" id="em-meses" min="1" max="24" placeholder="6"></div>
+      <div class="field"><label>Acumulado actual ($)</label><input type="number" id="em-actual" min="0" placeholder="0"></div>
+      <button onclick="saveEmergencia()" class="btn btn-green btn-full">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Agregar inversión -->
+<div class="modal-overlay" id="modal-add-inv">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">📈 Agregar inversión</span>
+      <button class="modal-close" onclick="DOM.closeModal('modal-add-inv')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Nombre *</label><input type="text" id="inv-nombre" placeholder="Ej: S&P500 ETF"></div>
+      <div class="field"><label>Tipo</label>
+        <select id="inv-tipo">
+          <option value="Acciones">📊 Acciones</option>
+          <option value="Cripto">🪙 Cripto</option>
+          <option value="ETF">📈 ETF</option>
+          <option value="Bonos">📃 Bonos</option>
+          <option value="FCI">🏦 FCI</option>
+          <option value="Otro">📦 Otro</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0"><label>Capital ($)</label><input type="number" id="inv-capital" min="0" step="0.01" placeholder="0"></div>
+        <div class="field" style="margin:0"><label>Valor actual ($)</label><input type="number" id="inv-valor" min="0" step="0.01" placeholder="0"></div>
+      </div>
+      <button onclick="addInversion()" class="btn btn-green btn-full" style="margin-top:20px">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Error fatal -->
+<div class="modal-overlay" id="modal-fatal-error">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🚨 Error crítico</span>
+    </div>
+    <div class="modal-body">
+      <p class="fatal-error-msg" style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:16px"></p>
+      <button onclick="window.location.reload()" class="btn btn-green btn-full">Recargar la app</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Auth expirada -->
+<div class="modal-overlay" id="modal-auth-expired">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><span class="modal-title">🔐 Sesión expirada</span></div>
+    <div class="modal-body">
+      <p style="color:var(--t2);font-size:13px;margin-bottom:16px">Tu sesión expiró. Por favor volvé a iniciar sesión.</p>
+      <button onclick="doLogout()" class="btn btn-green btn-full">Ir al login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════ -->
+<script>
+  // ── Auth tabs ──────────────────────────────
+  window.showAuthTab = function(tab) {
+    document.getElementById('auth-login').style.display  = tab === 'login'  ? '' : 'none';
+    document.getElementById('auth-signup').style.display = tab === 'signup' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  };
+
+  // ── Modal helpers expuestos globalmente ─────
+  window.openNewTradeModal  = () => { DOM.setVal('nt-date', new Date().toISOString().split('T')[0]); DOM.openModal('modal-new-trade'); };
+  window.openNewHabitModal  = () => DOM.openModal('modal-new-habit');
+  window.openNewMovModal    = () => { DOM.setVal('mov-fecha', new Date().toISOString().split('T')[0]); populateMovCatSelect(); DOM.openModal('modal-new-mov'); };
+
+  function populateMovCatSelect() {
+    const sel  = document.getElementById('mov-cat');
+    const cats = (typeof State !== 'undefined' ? State.get('finCats') : []) || [];
+    while (sel.options.length > 1) sel.remove(1);
+    cats.forEach(c => { const o = new Option(`${c.icon} ${c.name}`, c.id); sel.add(o); });
+  }
+
+  // ── Cerrar modals al tocar overlay ──────────
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  // ── Patrimonio: toggle activos/pasivos ───────
+  const origOpenPat = window.openEditPatrimonio;
+  window.openEditPatrimonio = function(tipo) {
+    document.getElementById('pat-activos-fields').style.display = tipo === 'activos' ? '' : 'none';
+    document.getElementById('pat-pasivos-fields').style.display = tipo === 'pasivos' ? '' : 'none';
+    if (origOpenPat) origOpenPat(tipo);
+  };
+
+  // ── toast global shortcut ────────────────────
+  window.toast = (msg, type) => {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = `toast-show ${type ? 'toast-' + type : ''}`;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => { t.className = 'toast-hide'; setTimeout(() => t.className = '', 300); }, 3000);
+  };
+</script>
+
+<!-- Módulos ES6 -->
+<script type="module">
+  import { Err, initPlugins } from './src/services/error-handler.js';
+  import { initPlugins as initPlug } from './src/services/plugins.js';
+
+  // Inicializar plugins
+  initPlug({ export: true, sync: true });
+
+  // Exponer DOM helper globalmente para inline handlers en modales
+  import { DOM } from './src/components/dom.js';
+  window.DOM = DOM;
+
+  // Importar main (inicia auth y router)
+  import './src/main.js';
+
+  // Importar módulo de metas
+  import { renderGoals } from './src/modules/goals/index.js';
+  window.renderGoals = renderGoals;
+</script>
+
+</body>
+</html>
